@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 class AppRepository(private val appDao: AppDao) {
     val allMatches: Flow<List<Profile>> = appDao.getAllMatches()
     val archivedProfiles: Flow<List<Profile>> = appDao.getArchivedProfiles()
+    val archivedSessions: Flow<List<SessionArchive>> = appDao.getArchivedSessions()
     val myProfile: Flow<Profile?> = appDao.getMyProfile()
     val settings: Flow<AppSettings?> = appDao.getSettings()
 

@@ -1,0 +1,1 @@
+sed -i 's/fun getAuthToken/fun setOnboardingCompleted(completed: Boolean) {\n        sharedPreferences.edit().putBoolean("ONBOARDING_COMPLETED", completed).apply()\n    }\n\n    fun isOnboardingCompleted(): Boolean {\n        return sharedPreferences.getBoolean("ONBOARDING_COMPLETED", false)\n    }\n\n    fun getAuthToken/g' app/src/main/java/com/example/EncryptedPrefsManager.kt

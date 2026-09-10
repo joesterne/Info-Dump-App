@@ -49,6 +49,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
     var isHyperfixating by remember { mutableStateOf(true) }
     var subject by remember { mutableStateOf("") }
     var selectedTags by remember { mutableStateOf(setOf<String>()) }
+    var energyLevel by remember { mutableStateOf("Medium") }
     var showSavedMessage by remember { mutableStateOf(false) }
 
     LaunchedEffect(myProfile) {
@@ -57,8 +58,11 @@ fun SettingsScreen(viewModel: MainViewModel) {
             isHyperfixating = it.isHyperfixating
             subject = it.subject
             selectedTags = it.tags.split(",").map { tag -> tag.trim() }.filter { tag -> tag.isNotEmpty() }.toSet()
+            energyLevel = it.energyLevel
         }
     }
+
+    val currentUserUid by viewModel.currentUserUid.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -78,6 +82,29 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            
+            // Authentication Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Account", style = MaterialTheme.typography.titleMedium)
+                    if (currentUserUid != null) {
+                        Text("Signed in securely.", color = MaterialTheme.colorScheme.primary)
+                        Button(onClick = { viewModel.signOut() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Sign Out")
+                        }
+                    } else {
+                        Text("Sign in with Google to sync your data securely.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Button(onClick = { viewModel.signInWithGoogle() }, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Filled.AccountCircle, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                            Text("Sign In with Google")
+                        }
+                    }
+                }
+            }
+
             Text(
                 text = "Accessibility & Comfort",
                 style = MaterialTheme.typography.headlineMedium,
@@ -204,9 +231,31 @@ fun SettingsScreen(viewModel: MainViewModel) {
                         )
                     }
 
+                    Text(
+                        text = "Communication Bandwidth / Energy Level",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf("Low", "Medium", "High").forEach { level ->
+                            FilterChip(
+                                selected = energyLevel == level,
+                                onClick = { energyLevel = level },
+                                label = { Text(level) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    }
+
                     Button(
                         onClick = {
-                            viewModel.saveMyProfile(name, isHyperfixating, subject, selectedTags.joinToString(", "))
+                            viewModel.saveMyProfile(name, isHyperfixating, subject, selectedTags.joinToString(", "), energyLevel)
                             scope.launch {
                                 showSavedMessage = true
                                 kotlinx.coroutines.delay(2000)

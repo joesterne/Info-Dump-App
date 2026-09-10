@@ -20,6 +20,15 @@ interface AppDao {
     """)
     fun getArchivedProfiles(): Flow<List<Profile>>
 
+    @Query("""
+        SELECT p.*, (SELECT MAX(timestamp) FROM chat_messages c WHERE c.matchId = p.id) as lastMessageTimestamp 
+        FROM profiles p 
+        WHERE p.isMyProfile = 0 AND p.isBlocked = 0 
+        AND EXISTS (SELECT 1 FROM chat_messages c WHERE c.matchId = p.id)
+        ORDER BY lastMessageTimestamp DESC
+    """)
+    fun getArchivedSessions(): Flow<List<SessionArchive>>
+
     @Query("SELECT * FROM profiles WHERE isMyProfile = 1 LIMIT 1")
     fun getMyProfile(): Flow<Profile?>
 

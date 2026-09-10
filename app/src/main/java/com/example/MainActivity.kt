@@ -26,11 +26,13 @@ class MainActivity : ComponentActivity() {
       applicationContext,
       AppDatabase::class.java, "infodump-db"
     )
-    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5)
     .build()
     
     val repository = AppRepository(db.appDao())
-    val factory = MainViewModel.Factory(repository)
+    val authManager = AuthManager(applicationContext)
+    val encryptedPrefsManager = EncryptedPrefsManager(applicationContext)
+    val factory = MainViewModel.Factory(repository, authManager, encryptedPrefsManager)
 
     setContent {
       val viewModel: MainViewModel = viewModel(factory = factory)

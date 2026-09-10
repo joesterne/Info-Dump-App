@@ -23,11 +23,12 @@ import com.example.ui.screens.FeedScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.screens.SplashScreen
 
+import com.example.ui.screens.OnboardingScreen
+
 @Composable
 fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "splash"
-
     val showBottomNav = currentRoute in listOf("feed", "archive", "settings")
 
     Scaffold(
@@ -77,9 +78,23 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("splash") {
-                SplashScreen(onSplashComplete = {
-                    navController.navigate("feed") {
-                        popUpTo("splash") { inclusive = true }
+                SplashScreen(viewModel = viewModel, onSplashComplete = { hasCompletedOnboarding ->
+                    if (hasCompletedOnboarding) {
+                        navController.navigate("feed") {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("onboarding") {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    }
+                })
+            }
+            composable("onboarding") {
+                OnboardingScreen(onComplete = {
+                    viewModel.encryptedPrefsManager.setOnboardingCompleted(true)
+                    navController.navigate("settings") {
+                        popUpTo("onboarding") { inclusive = true }
                     }
                 })
             }

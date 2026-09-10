@@ -13,7 +13,8 @@ data class Profile(
     val rating: Float = 5.0f,
     val isMyProfile: Boolean = false,
     val isBlocked: Boolean = false,
-    val isOnline: Boolean = false
+    val isOnline: Boolean = false,
+    val energyLevel: String = "Medium" // Low, Medium, High
 )
 
 @Entity(tableName = "chat_messages")

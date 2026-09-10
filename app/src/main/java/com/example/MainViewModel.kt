@@ -18,17 +18,41 @@ import kotlinx.coroutines.launch
 
 data class MatchWithScore(val profile: Profile, val compatibilityScore: Int)
 
-class MainViewModel(private val repository: AppRepository) : ViewModel() {
+class MainViewModel(
+    private val repository: AppRepository,
+    val authManager: AuthManager,
+    val encryptedPrefsManager: EncryptedPrefsManager
+) : ViewModel() {
 
     private val firestoreSyncManager = com.example.data.FirestoreSyncManager()
 
     private val _savedTopics = MutableStateFlow<List<String>>(emptyList())
     val savedTopics: StateFlow<List<String>> = _savedTopics.asStateFlow()
 
+    private val _currentUserUid = MutableStateFlow<String?>(null)
+    val currentUserUid: StateFlow<String?> = _currentUserUid.asStateFlow()
+
     init {
         viewModelScope.launch {
             _savedTopics.value = firestoreSyncManager.getSavedTopics()
+            _currentUserUid.value = authManager.getCurrentUserUid()
         }
+    }
+
+    fun signInWithGoogle() {
+        viewModelScope.launch {
+            val uid = authManager.signInWithGoogle()
+            if (uid != null) {
+                _currentUserUid.value = uid
+                encryptedPrefsManager.saveAuthToken(uid)
+            }
+        }
+    }
+
+    fun signOut() {
+        authManager.signOut()
+        encryptedPrefsManager.clearAuthToken()
+        _currentUserUid.value = null
     }
 
     fun addSavedTopic(topic: String) {
@@ -71,15 +95,19 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val archivedMatchesWithScores: StateFlow<List<MatchWithScore>> = combine(
-        repository.archivedProfiles,
+    val archivedSessionsWithScores: StateFlow<List<SessionArchiveWithScore>> = combine(
+        repository.archivedSessions,
         repository.myProfile
     ) { archived, myProfile ->
         if (myProfile == null) {
-            archived.map { MatchWithScore(it, 0) }
+            archived.map { SessionArchiveWithScore(it.profile, 0, it.lastMessageTimestamp) }
         } else {
-            archived.map { match ->
-                MatchWithScore(match, calculateCompatibilityScore(myProfile, match))
+            archived.map { session ->
+                SessionArchiveWithScore(
+                    profile = session.profile,
+                    compatibilityScore = calculateCompatibilityScore(myProfile, session.profile),
+                    lastMessageTimestamp = session.lastMessageTimestamp
+                )
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -89,26 +117,33 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
         
         // 1. Role compatibility: One wants to infodump, one wants to listen
         if (me.isHyperfixating != match.isHyperfixating) {
-            score += 40
+            score += 30
         }
 
-        // 2. Subject compatibility
+        // 2. Energy Level / Bandwidth match
+        if (me.energyLevel == match.energyLevel) {
+            score += 15 // Perfect energy match
+        } else if ((me.energyLevel == "Low" && match.energyLevel == "High") || (me.energyLevel == "High" && match.energyLevel == "Low")) {
+            score -= 10 // Energy mismatch
+        }
+
+        // 3. Subject compatibility
         val mySubject = me.subject.trim().lowercase()
         val matchSubject = match.subject.trim().lowercase()
         if (mySubject.isNotEmpty() && mySubject == matchSubject) {
-            score += 40
+            score += 35
         } else if (mySubject.isNotEmpty() && matchSubject.contains(mySubject) || mySubject.contains(matchSubject)) {
             score += 20 // Partial match
         }
 
-        // 3. Shared interest tags
+        // 4. Shared interest tags
         val myTags = me.tags.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
         val matchTags = match.tags.split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
         val sharedTags = myTags.intersect(matchTags.toSet())
         score += sharedTags.size * 10
         
         // Cap score at 100 for presentation
-        return score.coerceAtMost(100)
+        return score.coerceIn(0, 100)
     }
 
     val settings: StateFlow<AppSettings> = repository.settings
@@ -121,7 +156,7 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
         }
     }
 
-    fun saveMyProfile(name: String, isHyperfixating: Boolean, subject: String, tags: String) {
+    fun saveMyProfile(name: String, isHyperfixating: Boolean, subject: String, tags: String, energyLevel: String = "Medium") {
         viewModelScope.launch {
             val existing = myProfile.value
             val profile = Profile(
@@ -131,14 +166,15 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
                 subject = subject,
                 tags = tags,
                 isMyProfile = true,
-                rating = 5.0f
+                rating = 5.0f,
+                energyLevel = energyLevel
             )
             repository.insertProfile(profile)
             firestoreSyncManager.saveMyProfile(profile)
         }
     }
 
-    fun addMockMatch(name: String, isHyperfixating: Boolean, subject: String, tags: String) {
+    fun addMockMatch(name: String, isHyperfixating: Boolean, subject: String, tags: String, energyLevel: String = "Medium") {
         viewModelScope.launch {
             val profile = Profile(
                 name = name,
@@ -147,7 +183,8 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
                 tags = tags,
                 isMyProfile = false,
                 rating = 4.8f,
-                isOnline = Math.random() > 0.4
+                isOnline = Math.random() > 0.4,
+                energyLevel = energyLevel
             )
             repository.insertProfile(profile)
             firestoreSyncManager.saveMockUser(profile)
@@ -236,11 +273,15 @@ class MainViewModel(private val repository: AppRepository) : ViewModel() {
         return repository.getProfileById(id)
     }
 
-    class Factory(private val repository: AppRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: AppRepository,
+        private val authManager: AuthManager,
+        private val encryptedPrefsManager: EncryptedPrefsManager
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(repository) as T
+                return MainViewModel(repository, authManager, encryptedPrefsManager) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

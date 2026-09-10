@@ -21,8 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
+import com.example.MainViewModel
+
 @Composable
-fun SplashScreen(onSplashComplete: () -> Unit) {
+fun SplashScreen(viewModel: MainViewModel, onSplashComplete: (Boolean) -> Unit) {
     var startAnimation by remember { mutableStateOf(false) }
     
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
@@ -52,7 +54,7 @@ fun SplashScreen(onSplashComplete: () -> Unit) {
     LaunchedEffect(key1 = true) {
         startAnimation = true
         delay(2500)
-        onSplashComplete()
+        onSplashComplete(viewModel.encryptedPrefsManager.isOnboardingCompleted())
     }
 
     Box(

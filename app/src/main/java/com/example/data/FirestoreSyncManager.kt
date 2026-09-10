@@ -12,10 +12,9 @@ class FirestoreSyncManager {
     
     private val firestore: FirebaseFirestore? by lazy {
         try {
-            FirebaseApp.getInstance()
             Firebase.firestore
         } catch (e: IllegalStateException) {
-            Log.w("FirestoreSync", "Firebase not initialized. Missing google-services.json? Using in-memory mock.")
+            Log.w("FirestoreSync", "Firebase not initialized. Missing config in .env? Using in-memory mock.")
             null
         }
     }
@@ -31,6 +30,7 @@ class FirestoreSyncManager {
                 "subject" to profile.subject,
                 "tags" to profile.tags,
                 "rating" to profile.rating,
+                "energyLevel" to profile.energyLevel,
                 "updatedAt" to System.currentTimeMillis()
             )
             db.collection("users").document("my_profile").set(data).await()
@@ -65,7 +65,8 @@ class FirestoreSyncManager {
                 "isHyperfixating" to profile.isHyperfixating,
                 "subject" to profile.subject,
                 "tags" to profile.tags,
-                "rating" to profile.rating
+                "rating" to profile.rating,
+                "energyLevel" to profile.energyLevel
             )
             db.collection("users").document(profile.name).set(data).await()
             Log.d("FirestoreSync", "Successfully saved mock user to Firestore")
