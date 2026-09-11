@@ -36,7 +36,7 @@ class FirestoreSyncManager {
             db.collection("users").document("my_profile").set(data).await()
             Log.d("FirestoreSync", "Successfully saved my profile to Firestore")
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "Error saving profile", e)
+            Log.w("FirestoreSync", "Error saving profile: ${e.message}")
         }
     }
 
@@ -53,7 +53,7 @@ class FirestoreSyncManager {
             db.collection("match_history").add(data).await()
             Log.d("FirestoreSync", "Successfully saved match result to Firestore")
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "Error saving match", e)
+            Log.w("FirestoreSync", "Error saving match: ${e.message}")
         }
     }
     
@@ -71,7 +71,7 @@ class FirestoreSyncManager {
             db.collection("users").document(profile.name).set(data).await()
             Log.d("FirestoreSync", "Successfully saved mock user to Firestore")
         } catch(e: Exception) {
-            Log.e("FirestoreSync", "Error saving mock user", e)
+            Log.w("FirestoreSync", "Error saving mock user: ${e.message}")
         }
     }
 
@@ -89,7 +89,7 @@ class FirestoreSyncManager {
               .set(mapOf("topics" to topics)).await()
             Log.d("FirestoreSync", "Successfully saved topics to Firestore")
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "Error saving topics", e)
+            Log.w("FirestoreSync", "Error saving topics: ${e.message}")
         }
     }
 
@@ -104,7 +104,7 @@ class FirestoreSyncManager {
             val topics = snapshot.get("topics") as? List<String>
             topics ?: emptyList()
         } catch (e: Exception) {
-            Log.e("FirestoreSync", "Error getting topics", e)
+            Log.w("FirestoreSync", "Error getting topics (client may be offline): ${e.message}")
             emptyList()
         }
     }

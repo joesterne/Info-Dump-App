@@ -14,7 +14,8 @@ data class Profile(
     val isMyProfile: Boolean = false,
     val isBlocked: Boolean = false,
     val isOnline: Boolean = false,
-    val energyLevel: String = "Medium" // Low, Medium, High
+    val energyLevel: String = "Medium", // Low, Medium, High
+    val archiveTags: String = "" // Custom tags for archived sessions
 )
 
 @Entity(tableName = "chat_messages")

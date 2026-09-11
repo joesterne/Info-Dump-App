@@ -219,6 +219,16 @@ class MainViewModel(
         }
     }
 
+    fun updateArchiveTags(matchId: Int, tags: String) {
+        viewModelScope.launch {
+            val match = repository.getProfileById(matchId)
+            if (match != null) {
+                val updatedMatch = match.copy(archiveTags = tags)
+                repository.insertProfile(updatedMatch)
+            }
+        }
+    }
+
     fun submitSessionFeedback(matchId: Int, quality: Int, clarity: Int) {
         viewModelScope.launch {
             val match = repository.getProfileById(matchId)

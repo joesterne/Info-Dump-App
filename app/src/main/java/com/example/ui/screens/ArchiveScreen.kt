@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +22,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ArchiveScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
     val archivedSessions by viewModel.archivedSessionsWithScores.collectAsStateWithLifecycle()
+    
+    var showTagDialog by remember { mutableStateOf<SessionArchiveWithScore?>(null) }
+    var currentTagInput by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -57,15 +62,54 @@ fun ArchiveScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
                 items(archivedSessions) { session ->
-                    ArchivedSessionCard(session = session, onClick = { onNavigateToChat(session.profile.id) })
+                    ArchivedSessionCard(
+                        session = session, 
+                        onClick = { onNavigateToChat(session.profile.id) },
+                        onEditTags = { 
+                            showTagDialog = session
+                            currentTagInput = session.profile.archiveTags
+                        }
+                    )
                 }
             }
+        }
+        
+        showTagDialog?.let { session ->
+            AlertDialog(
+                onDismissRequest = { showTagDialog = null },
+                title = { Text("Edit Archive Tags") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Add comma-separated tags to organize your sessions (e.g., 'Trains, History, Interesting').", style = MaterialTheme.typography.bodyMedium)
+                        OutlinedTextField(
+                            value = currentTagInput,
+                            onValueChange = { currentTagInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Tags") }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.updateArchiveTags(session.profile.id, currentTagInput)
+                        showTagDialog = null
+                    }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showTagDialog = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ArchivedSessionCard(session: SessionArchiveWithScore, onClick: () -> Unit) {
+fun ArchivedSessionCard(session: SessionArchiveWithScore, onClick: () -> Unit, onEditTags: () -> Unit) {
     val dateFormat = SimpleDateFormat("MMM d, yyyy • h:mm a", Locale.getDefault())
     val formattedDate = dateFormat.format(Date(session.lastMessageTimestamp))
 
@@ -137,6 +181,69 @@ fun ArchivedSessionCard(session: SessionArchiveWithScore, onClick: () -> Unit) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Label,
+                        contentDescription = "Archive Tags",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp).padding(top = 4.dp)
+                    )
+                    
+                    val tagsList = session.profile.archiveTags.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    
+                    if (tagsList.isEmpty()) {
+                        Text(
+                            text = "No custom tags",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    } else {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            tagsList.forEach { tag ->
+                                Surface(
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                ) {
+                                    Text(
+                                        text = tag,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                IconButton(
+                    onClick = { onEditTags() },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Edit,
+                        contentDescription = "Edit Tags",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

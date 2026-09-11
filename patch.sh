@@ -1,0 +1,2 @@
+sed -i 's/version = 5/version = 6/g' app/src/main/java/com/example/data/AppDatabase.kt
+sed -i 's/    companion object {/    companion object {\n        val MIGRATION_5_6 = object : Migration(5, 6) {\n            override fun migrate(db: SupportSQLiteDatabase) {\n                db.execSQL("ALTER TABLE profiles ADD COLUMN archiveTags TEXT NOT NULL DEFAULT '\'''\''")\n            }\n        }/g' app/src/main/java/com/example/data/AppDatabase.kt
