@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.runtime.*
@@ -32,7 +33,7 @@ val predefinedTags = listOf(
     TagOption("Art", Icons.Filled.Brush),
     TagOption("Music", Icons.Filled.MusicNote),
     TagOption("Gaming", Icons.Filled.SportsEsports),
-    TagOption("Literature", Icons.Filled.MenuBook),
+    TagOption("Literature", Icons.AutoMirrored.Filled.MenuBook),
     TagOption("Nature", Icons.Filled.Park),
     TagOption("Space", Icons.Filled.RocketLaunch),
     TagOption("Math", Icons.Filled.Calculate),

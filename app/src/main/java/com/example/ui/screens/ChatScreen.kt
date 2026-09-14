@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
@@ -263,7 +263,7 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
                                     showMenu = false
                                     showFeedbackDialog = true 
                                 },
-                                leadingIcon = { Icon(Icons.Filled.ExitToApp, contentDescription = null) }
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) }
                             )
                             DropdownMenuItem(
                                 text = { Text("Block User") },

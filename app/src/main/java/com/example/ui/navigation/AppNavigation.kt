@@ -7,8 +7,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Mic
 import com.example.ui.screens.NotesScreen
@@ -38,7 +38,7 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, in
             if (showBottomNav) {
                 NavigationBar {
                     NavigationBarItem(
-                        icon = { Icon(Icons.Filled.List, contentDescription = "Matches feed") },
+                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Matches feed") },
                         label = { Text("Feed") },
                         selected = currentRoute == "feed",
                         onClick = {
@@ -49,7 +49,7 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, in
                         }
                     )
                     NavigationBarItem(
-                        icon = { Icon(Icons.Filled.Chat, contentDescription = "Past chat archive") },
+                        icon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Past chat archive") },
                         label = { Text("Archive") },
                         selected = currentRoute == "archive",
                         onClick = {

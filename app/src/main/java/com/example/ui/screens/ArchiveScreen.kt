@@ -9,7 +9,7 @@ import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Topic
@@ -256,7 +256,7 @@ fun ArchivedSessionCard(session: SessionArchiveWithScore, onClick: () -> Unit, o
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Label,
+                        imageVector = Icons.AutoMirrored.Filled.Label,
                         contentDescription = "Archive Tags",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp).padding(top = 4.dp)
