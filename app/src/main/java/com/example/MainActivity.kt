@@ -1,5 +1,6 @@
 package com.example
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,13 +27,18 @@ class MainActivity : ComponentActivity() {
       applicationContext,
       AppDatabase::class.java, "infodump-db"
     )
-    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6)
+    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7)
     .build()
     
     val repository = AppRepository(db.appDao())
     val authManager = AuthManager(applicationContext)
     val encryptedPrefsManager = EncryptedPrefsManager(applicationContext)
     val factory = MainViewModel.Factory(repository, authManager, encryptedPrefsManager)
+
+    var importedNoteText: String? = null
+    if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+        importedNoteText = intent.getStringExtra(Intent.EXTRA_TEXT)
+    }
 
     setContent {
       val viewModel: MainViewModel = viewModel(factory = factory)
@@ -44,7 +50,7 @@ class MainActivity : ComponentActivity() {
       ) {
         Surface(modifier = Modifier.fillMaxSize()) {
           val navController = rememberNavController()
-          AppNavigation(navController = navController, viewModel = viewModel)
+          AppNavigation(navController = navController, viewModel = viewModel, initialNoteText = importedNoteText)
         }
       }
     }

@@ -34,3 +34,12 @@ data class AppSettings(
     val isDarkMode: Boolean = true,
     val textSizeMultiplier: Float = 1.0f
 )
+
+@Entity(tableName = "session_notes")
+data class SessionNote(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val matchId: Int,
+    val content: String, // Text content (can be empty if just audio)
+    val audioFilePath: String?, // Path to the recorded audio file, if any
+    val timestamp: Long = System.currentTimeMillis()
+)

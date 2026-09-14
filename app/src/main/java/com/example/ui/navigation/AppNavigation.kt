@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Mic
+import com.example.ui.screens.NotesScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -26,10 +28,10 @@ import com.example.ui.screens.SplashScreen
 import com.example.ui.screens.OnboardingScreen
 
 @Composable
-fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
+fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, initialNoteText: String? = null) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "splash"
-    val showBottomNav = currentRoute in listOf("feed", "archive", "settings")
+    val showBottomNav = currentRoute in listOf("feed", "archive", "notes", "settings")
 
     Scaffold(
         bottomBar = {
@@ -58,6 +60,17 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
                         }
                     )
                     NavigationBarItem(
+                        icon = { Icon(Icons.Filled.Mic, contentDescription = "Session Notes") },
+                        label = { Text("Notes") },
+                        selected = currentRoute == "notes",
+                        onClick = {
+                            navController.navigate("notes") {
+                                popUpTo(navController.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                    NavigationBarItem(
                         icon = { Icon(Icons.Filled.Settings, contentDescription = "Profile and settings") },
                         label = { Text("Settings") },
                         selected = currentRoute == "settings",
@@ -79,7 +92,11 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
         ) {
             composable("splash") {
                 SplashScreen(viewModel = viewModel, onSplashComplete = { hasCompletedOnboarding ->
-                    if (hasCompletedOnboarding) {
+                    if (initialNoteText != null) {
+                        navController.navigate("notes") {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    } else if (hasCompletedOnboarding) {
                         navController.navigate("feed") {
                             popUpTo("splash") { inclusive = true }
                         }
@@ -110,6 +127,9 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel) {
             }
             composable("settings") {
                 SettingsScreen(viewModel = viewModel)
+            }
+            composable("notes") {
+                NotesScreen(viewModel = viewModel, initialNoteText = initialNoteText)
             }
             composable("chat/{matchId}") { backStackEntry ->
                 val matchId = backStackEntry.arguments?.getString("matchId")?.toIntOrNull() ?: 0

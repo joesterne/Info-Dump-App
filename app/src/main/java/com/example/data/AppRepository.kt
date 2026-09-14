@@ -26,4 +26,12 @@ class AppRepository(private val appDao: AppDao) {
     suspend fun insertChatMessage(chatMessage: ChatMessage) {
         appDao.insertChatMessage(chatMessage)
     }
+
+    fun getNotesForMatch(matchId: Int): Flow<List<SessionNote>> {
+        return appDao.getNotesForMatch(matchId)
+    }
+
+    suspend fun insertNote(note: SessionNote) {
+        appDao.insertNote(note)
+    }
 }

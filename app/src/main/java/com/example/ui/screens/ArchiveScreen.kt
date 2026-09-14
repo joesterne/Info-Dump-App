@@ -6,8 +6,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Label
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Topic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,50 +30,106 @@ import java.util.Locale
 @Composable
 fun ArchiveScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
     val archivedSessions by viewModel.archivedSessionsWithScores.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     
     var showTagDialog by remember { mutableStateOf<SessionArchiveWithScore?>(null) }
     var currentTagInput by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredSessions = remember(archivedSessions, searchQuery) {
+        if (searchQuery.isBlank()) {
+            archivedSessions
+        } else {
+            archivedSessions.filter { session ->
+                session.profile.subject.contains(searchQuery, ignoreCase = true) ||
+                session.profile.archiveTags.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Session Archive", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.updateSettings(
+                            isDarkMode = !settings.isDarkMode,
+                            textSizeMultiplier = settings.textSizeMultiplier
+                        )
+                    }) {
+                        Icon(
+                            imageVector = if (settings.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
             )
         }
     ) { paddingValues ->
-        if (archivedSessions.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("No archived sessions yet.", style = MaterialTheme.typography.titleLarge)
-                    Text("Chat with a match to start archiving knowledge exchanges.", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp)
-            ) {
-                items(archivedSessions) { session ->
-                    ArchivedSessionCard(
-                        session = session, 
-                        onClick = { onNavigateToChat(session.profile.id) },
-                        onEditTags = { 
-                            showTagDialog = session
-                            currentTagInput = session.profile.archiveTags
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search by topic or tag...") },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Search") },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear search")
                         }
-                    )
+                    }
+                },
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
+            )
+            
+            if (filteredSessions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        if (archivedSessions.isEmpty()) {
+                            Text("No archived sessions yet.", style = MaterialTheme.typography.titleLarge)
+                            Text("Chat with a match to start archiving knowledge exchanges.", style = MaterialTheme.typography.bodyLarge)
+                        } else {
+                            Text("No results found.", style = MaterialTheme.typography.titleLarge)
+                            Text("Try adjusting your search query.", style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp)
+                ) {
+                    items(filteredSessions) { session ->
+                        ArchivedSessionCard(
+                            session = session, 
+                            onClick = { onNavigateToChat(session.profile.id) },
+                            onEditTags = { 
+                                showTagDialog = session
+                                currentTagInput = session.profile.archiveTags
+                            }
+                        )
+                    }
                 }
             }
         }

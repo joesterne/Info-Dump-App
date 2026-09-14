@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Favorite
@@ -27,9 +30,17 @@ import com.example.MatchWithScore
 fun FeedScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
     val matchesWithScores by viewModel.allMatchesWithScores.collectAsStateWithLifecycle()
     val myProfile by viewModel.myProfile.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    
     var showSearchModal by remember { mutableStateOf(false) }
+    var showWheelModal by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var activeSearchQuery by remember { mutableStateOf("") }
+
+    val allAvailableTopics = remember(matchesWithScores) {
+        val topics = matchesWithScores.map { it.profile.subject }.filter { it.isNotBlank() }.distinct()
+        if (topics.size >= 3) topics else listOf("Trains", "Deep Sea Creatures", "Medieval History", "Quantum Physics", "Vintage Keyboards", "Space", "Dinosaurs", "Bugs")
+    }
 
     val displayedMatches = if (activeSearchQuery.isNotBlank()) {
         matchesWithScores.filter { 
@@ -73,6 +84,17 @@ fun FeedScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
         )
     }
 
+    if (showWheelModal) {
+        TopicWheelDialog(
+            topics = allAvailableTopics,
+            onDismiss = { showWheelModal = false },
+            onTopicSelected = { selectedTopic ->
+                activeSearchQuery = selectedTopic
+                showWheelModal = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -83,6 +105,20 @@ fun FeedScreen(viewModel: MainViewModel, onNavigateToChat: (Int) -> Unit) {
                     ) 
                 },
                 actions = {
+                    IconButton(onClick = {
+                        viewModel.updateSettings(
+                            isDarkMode = !settings.isDarkMode,
+                            textSizeMultiplier = settings.textSizeMultiplier
+                        )
+                    }) {
+                        Icon(
+                            imageVector = if (settings.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                    IconButton(onClick = { showWheelModal = true }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Spin the wheel for a random topic")
+                    }
                     IconButton(onClick = { 
                         searchQuery = activeSearchQuery
                         showSearchModal = true 

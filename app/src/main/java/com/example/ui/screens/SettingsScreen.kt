@@ -12,6 +12,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +70,19 @@ fun SettingsScreen(viewModel: MainViewModel) {
         topBar = {
             TopAppBar(
                 title = { Text("Settings", fontWeight = androidx.compose.ui.text.font.FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.updateSettings(
+                            isDarkMode = !settings.isDarkMode,
+                            textSizeMultiplier = settings.textSizeMultiplier
+                        )
+                    }) {
+                        Icon(
+                            imageVector = if (settings.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )

@@ -7,6 +7,7 @@ import com.example.data.AppRepository
 import com.example.data.AppSettings
 import com.example.data.ChatMessage
 import com.example.data.Profile
+import com.example.data.SessionNote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -197,6 +198,20 @@ class MainViewModel(
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+    }
+
+    fun getNotes(matchId: Int): StateFlow<List<SessionNote>> {
+        return repository.getNotesForMatch(matchId).stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList()
+        )
+    }
+
+    fun saveNote(note: SessionNote) {
+        viewModelScope.launch {
+            repository.insertNote(note)
+        }
     }
 
     fun recordMatchInteraction(matchId: Int) {

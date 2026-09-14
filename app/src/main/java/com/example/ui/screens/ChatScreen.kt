@@ -14,7 +14,9 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
@@ -36,6 +38,7 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
     var matchProfile by remember { mutableStateOf<Profile?>(null) }
     val chats by viewModel.getChats(matchId).collectAsStateWithLifecycle()
     val isTyping by viewModel.isTyping.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     
@@ -235,6 +238,17 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        viewModel.updateSettings(
+                            isDarkMode = !settings.isDarkMode,
+                            textSizeMultiplier = settings.textSizeMultiplier
+                        )
+                    }) {
+                        Icon(
+                            imageVector = if (settings.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                            contentDescription = "Toggle Theme"
+                        )
+                    }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(Icons.Filled.MoreVert, contentDescription = "Open chat options menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -51,4 +51,11 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun updateSettings(settings: AppSettings)
+
+    // Notes
+    @Query("SELECT * FROM session_notes WHERE matchId = :matchId ORDER BY timestamp DESC")
+    fun getNotesForMatch(matchId: Int): Flow<List<SessionNote>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertNote(note: SessionNote)
 }
