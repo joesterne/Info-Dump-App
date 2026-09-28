@@ -27,7 +27,15 @@ class MainActivity : ComponentActivity() {
       applicationContext,
       AppDatabase::class.java, "infodump-db"
     )
-    .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6, AppDatabase.MIGRATION_6_7)
+    .addMigrations(
+      AppDatabase.MIGRATION_1_2,
+      AppDatabase.MIGRATION_2_3,
+      AppDatabase.MIGRATION_3_4,
+      AppDatabase.MIGRATION_4_5,
+      AppDatabase.MIGRATION_5_6,
+      AppDatabase.MIGRATION_6_7,
+      AppDatabase.MIGRATION_7_8
+    )
     .build()
     
     val repository = AppRepository(db.appDao())

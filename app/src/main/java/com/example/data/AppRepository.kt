@@ -34,4 +34,14 @@ class AppRepository(private val appDao: AppDao) {
     suspend fun insertNote(note: SessionNote) {
         appDao.insertNote(note)
     }
+
+    val allFocusSessions: Flow<List<FocusSession>> = appDao.getAllFocusSessions()
+
+    suspend fun insertFocusSession(session: FocusSession) {
+        appDao.insertFocusSession(session)
+    }
+
+    suspend fun deleteFocusSession(id: Int) {
+        appDao.deleteFocusSession(id)
+    }
 }

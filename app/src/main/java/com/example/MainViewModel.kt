@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.AppRepository
 import com.example.data.AppSettings
 import com.example.data.ChatMessage
+import com.example.data.FocusSession
 import com.example.data.Profile
 import com.example.data.SessionNote
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +19,35 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 data class MatchWithScore(val profile: Profile, val compatibilityScore: Int)
+
+enum class PomodoroPreset(
+    val title: String,
+    val description: String,
+    val focusMinutes: Int,
+    val breakMinutes: Int,
+    val longBreakMinutes: Int = 15
+) {
+    QUICK_SPRINT("Quick Sprint", "10m Focus · 3m Break (Low inertia for starting)", 10, 3, 10),
+    CLASSIC("Classic Flow", "25m Focus · 5m Break (Balanced standard)", 25, 5, 15),
+    HYPERFOCUS("Deep Dive", "45m Focus · 10m Break (Uninterrupted infodump flow)", 45, 10, 20),
+    CUSTOM("Custom Length", "Personalized focus & rest pacing", 20, 5, 15)
+}
+
+enum class TimerPhase(val displayName: String) {
+    FOCUS("Focus Session"),
+    SHORT_BREAK("Short Break"),
+    LONG_BREAK("Long Break")
+}
+
+enum class TimerStatus {
+    IDLE,
+    RUNNING,
+    PAUSED,
+    COMPLETED
+}
 
 class MainViewModel(
     private val repository: AppRepository,
@@ -296,6 +326,230 @@ class MainViewModel(
 
     suspend fun getProfile(id: Int): Profile? {
         return repository.getProfileById(id)
+    }
+
+    // --- Pomodoro Focus Timer ---
+    val allFocusSessions: StateFlow<List<FocusSession>> = repository.allFocusSessions
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val todayFocusMinutes: StateFlow<Int> = allFocusSessions.map { sessions ->
+        val startOfDay = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        sessions.filter { it.sessionType == "FOCUS" && it.timestamp >= startOfDay }
+            .sumOf { it.actualDurationMinutes }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val totalFocusMinutes: StateFlow<Int> = allFocusSessions.map { sessions ->
+        sessions.filter { it.sessionType == "FOCUS" }.sumOf { it.actualDurationMinutes }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    private val _timerPreset = MutableStateFlow(PomodoroPreset.CLASSIC)
+    val timerPreset: StateFlow<PomodoroPreset> = _timerPreset.asStateFlow()
+
+    private val _timerPhase = MutableStateFlow(TimerPhase.FOCUS)
+    val timerPhase: StateFlow<TimerPhase> = _timerPhase.asStateFlow()
+
+    private val _timerStatus = MutableStateFlow(TimerStatus.IDLE)
+    val timerStatus: StateFlow<TimerStatus> = _timerStatus.asStateFlow()
+
+    private val _targetDurationSeconds = MutableStateFlow(25 * 60)
+    val targetDurationSeconds: StateFlow<Int> = _targetDurationSeconds.asStateFlow()
+
+    private val _remainingSeconds = MutableStateFlow(25 * 60)
+    val remainingSeconds: StateFlow<Int> = _remainingSeconds.asStateFlow()
+
+    private val _customFocusMinutes = MutableStateFlow(25)
+    val customFocusMinutes: StateFlow<Int> = _customFocusMinutes.asStateFlow()
+
+    private val _customBreakMinutes = MutableStateFlow(5)
+    val customBreakMinutes: StateFlow<Int> = _customBreakMinutes.asStateFlow()
+
+    private val _currentSubject = MutableStateFlow("Infodump Exploration")
+    val currentSubject: StateFlow<String> = _currentSubject.asStateFlow()
+
+    private val _completedSessionsInCycle = MutableStateFlow(0)
+    val completedSessionsInCycle: StateFlow<Int> = _completedSessionsInCycle.asStateFlow()
+
+    private val _showCompletionDialog = MutableStateFlow(false)
+    val showCompletionDialog: StateFlow<Boolean> = _showCompletionDialog.asStateFlow()
+
+    private val _lastSessionDurationMinutes = MutableStateFlow(25)
+    val lastSessionDurationMinutes: StateFlow<Int> = _lastSessionDurationMinutes.asStateFlow()
+
+    private val _gentleSoundEnabled = MutableStateFlow(true)
+    val gentleSoundEnabled: StateFlow<Boolean> = _gentleSoundEnabled.asStateFlow()
+
+    private val _gentleVibrationEnabled = MutableStateFlow(true)
+    val gentleVibrationEnabled: StateFlow<Boolean> = _gentleVibrationEnabled.asStateFlow()
+
+    private var timerJob: Job? = null
+
+    fun setTimerPreset(preset: PomodoroPreset) {
+        if (_timerStatus.value == TimerStatus.RUNNING) return
+        _timerPreset.value = preset
+        updateDurationForCurrentPhase()
+    }
+
+    fun setCustomDurations(focusMin: Int, breakMin: Int) {
+        _customFocusMinutes.value = focusMin.coerceIn(1, 180)
+        _customBreakMinutes.value = breakMin.coerceIn(1, 60)
+        if (_timerPreset.value == PomodoroPreset.CUSTOM && _timerStatus.value != TimerStatus.RUNNING) {
+            updateDurationForCurrentPhase()
+        }
+    }
+
+    fun setSubject(subject: String) {
+        _currentSubject.value = subject.ifBlank { "General Learning" }
+    }
+
+    fun toggleGentleSound() {
+        _gentleSoundEnabled.value = !_gentleSoundEnabled.value
+    }
+
+    fun toggleGentleVibration() {
+        _gentleVibrationEnabled.value = !_gentleVibrationEnabled.value
+    }
+
+    private fun updateDurationForCurrentPhase() {
+        val totalSecs = when (_timerPhase.value) {
+            TimerPhase.FOCUS -> {
+                val mins = if (_timerPreset.value == PomodoroPreset.CUSTOM) _customFocusMinutes.value else _timerPreset.value.focusMinutes
+                mins * 60
+            }
+            TimerPhase.SHORT_BREAK -> {
+                val mins = if (_timerPreset.value == PomodoroPreset.CUSTOM) _customBreakMinutes.value else _timerPreset.value.breakMinutes
+                mins * 60
+            }
+            TimerPhase.LONG_BREAK -> {
+                val mins = if (_timerPreset.value == PomodoroPreset.CUSTOM) 15 else _timerPreset.value.longBreakMinutes
+                mins * 60
+            }
+        }
+        _targetDurationSeconds.value = totalSecs
+        _remainingSeconds.value = totalSecs
+    }
+
+    fun startTimer() {
+        if (_timerStatus.value == TimerStatus.RUNNING) return
+        _timerStatus.value = TimerStatus.RUNNING
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (_remainingSeconds.value > 0) {
+                delay(1000)
+                if (_timerStatus.value == TimerStatus.RUNNING) {
+                    _remainingSeconds.value -= 1
+                }
+            }
+            handleTimerCompletion()
+        }
+    }
+
+    fun pauseTimer() {
+        if (_timerStatus.value == TimerStatus.RUNNING) {
+            _timerStatus.value = TimerStatus.PAUSED
+        }
+    }
+
+    fun resumeTimer() {
+        if (_timerStatus.value == TimerStatus.PAUSED) {
+            startTimer()
+        }
+    }
+
+    fun resetTimer() {
+        timerJob?.cancel()
+        _timerStatus.value = TimerStatus.IDLE
+        updateDurationForCurrentPhase()
+    }
+
+    // Neurodivergent superpower: In the flow? Add +5 minutes smoothly!
+    fun extendTimer(minutes: Int = 5) {
+        val additionalSecs = minutes * 60
+        _targetDurationSeconds.value += additionalSecs
+        _remainingSeconds.value += additionalSecs
+        if (_timerStatus.value == TimerStatus.IDLE || _timerStatus.value == TimerStatus.COMPLETED) {
+            _timerStatus.value = TimerStatus.PAUSED
+        }
+    }
+
+    fun skipToNextPhase() {
+        timerJob?.cancel()
+        advanceToNextPhase()
+    }
+
+    private fun handleTimerCompletion() {
+        _timerStatus.value = TimerStatus.COMPLETED
+        val completedDurationMins = (_targetDurationSeconds.value / 60).coerceAtLeast(1)
+        _lastSessionDurationMinutes.value = completedDurationMins
+
+        if (_timerPhase.value == TimerPhase.FOCUS) {
+            val nextCycle = (_completedSessionsInCycle.value + 1)
+            _completedSessionsInCycle.value = nextCycle
+            // Trigger celebration / reflection dialog so user can log notes
+            _showCompletionDialog.value = true
+        } else {
+            advanceToNextPhase()
+        }
+    }
+
+    fun recordCompletedSession(mood: String, notesSummary: String) {
+        viewModelScope.launch {
+            val session = FocusSession(
+                subject = _currentSubject.value,
+                sessionType = "FOCUS",
+                targetDurationMinutes = _lastSessionDurationMinutes.value,
+                actualDurationMinutes = _lastSessionDurationMinutes.value,
+                completed = true,
+                reflectionMood = mood,
+                notesSummary = notesSummary.ifBlank { null },
+                timestamp = System.currentTimeMillis()
+            )
+            repository.insertFocusSession(session)
+            _showCompletionDialog.value = false
+            advanceToNextPhase()
+        }
+    }
+
+    fun dismissCompletionDialog() {
+        viewModelScope.launch {
+            val session = FocusSession(
+                subject = _currentSubject.value,
+                sessionType = "FOCUS",
+                targetDurationMinutes = _lastSessionDurationMinutes.value,
+                actualDurationMinutes = _lastSessionDurationMinutes.value,
+                completed = true,
+                reflectionMood = "Steady",
+                notesSummary = null,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.insertFocusSession(session)
+            _showCompletionDialog.value = false
+            advanceToNextPhase()
+        }
+    }
+
+    private fun advanceToNextPhase() {
+        _timerStatus.value = TimerStatus.IDLE
+        if (_timerPhase.value == TimerPhase.FOCUS) {
+            if (_completedSessionsInCycle.value % 4 == 0 && _completedSessionsInCycle.value > 0) {
+                _timerPhase.value = TimerPhase.LONG_BREAK
+            } else {
+                _timerPhase.value = TimerPhase.SHORT_BREAK
+            }
+        } else {
+            _timerPhase.value = TimerPhase.FOCUS
+        }
+        updateDurationForCurrentPhase()
+    }
+
+    fun deleteFocusSession(id: Int) {
+        viewModelScope.launch {
+            repository.deleteFocusSession(id)
+        }
     }
 
     class Factory(

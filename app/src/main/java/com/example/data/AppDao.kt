@@ -58,4 +58,14 @@ interface AppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNote(note: SessionNote)
+
+    // Focus Sessions
+    @Query("SELECT * FROM focus_sessions ORDER BY timestamp DESC")
+    fun getAllFocusSessions(): Flow<List<FocusSession>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertFocusSession(session: FocusSession)
+
+    @Query("DELETE FROM focus_sessions WHERE id = :id")
+    suspend fun deleteFocusSession(id: Int)
 }

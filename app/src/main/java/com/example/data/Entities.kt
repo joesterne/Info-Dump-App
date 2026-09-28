@@ -43,3 +43,16 @@ data class SessionNote(
     val audioFilePath: String?, // Path to the recorded audio file, if any
     val timestamp: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "focus_sessions")
+data class FocusSession(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val subject: String,
+    val sessionType: String = "FOCUS", // "FOCUS", "SHORT_BREAK", "LONG_BREAK"
+    val targetDurationMinutes: Int,
+    val actualDurationMinutes: Int,
+    val completed: Boolean = true,
+    val reflectionMood: String? = null,
+    val notesSummary: String? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)

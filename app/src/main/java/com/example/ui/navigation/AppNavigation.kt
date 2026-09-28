@@ -11,7 +11,9 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Timer
 import com.example.ui.screens.NotesScreen
+import com.example.ui.screens.FocusTimerScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -31,7 +33,7 @@ import com.example.ui.screens.OnboardingScreen
 fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, initialNoteText: String? = null) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "splash"
-    val showBottomNav = currentRoute in listOf("feed", "archive", "notes", "settings")
+    val showBottomNav = currentRoute in listOf("feed", "archive", "notes", "focus", "settings")
 
     Scaffold(
         bottomBar = {
@@ -65,6 +67,17 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, in
                         selected = currentRoute == "notes",
                         onClick = {
                             navController.navigate("notes") {
+                                popUpTo(navController.graph.startDestinationId)
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                    NavigationBarItem(
+                        icon = { Icon(Icons.Filled.Timer, contentDescription = "Pomodoro Focus Timer") },
+                        label = { Text("Focus") },
+                        selected = currentRoute == "focus",
+                        onClick = {
+                            navController.navigate("focus") {
                                 popUpTo(navController.graph.startDestinationId)
                                 launchSingleTop = true
                             }
@@ -125,15 +138,26 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, in
                     navController.navigate("chat/$matchId")
                 })
             }
-            composable("settings") {
-                SettingsScreen(viewModel = viewModel)
-            }
             composable("notes") {
                 NotesScreen(viewModel = viewModel, initialNoteText = initialNoteText)
+            }
+            composable("focus") {
+                FocusTimerScreen(
+                    viewModel = viewModel,
+                    onNavigateToNotes = { _ ->
+                        navController.navigate("notes") {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
             composable("chat/{matchId}") { backStackEntry ->
                 val matchId = backStackEntry.arguments?.getString("matchId")?.toIntOrNull() ?: 0
                 ChatScreen(viewModel = viewModel, matchId = matchId, onBack = { navController.popBackStack() })
+            }
+            composable("settings") {
+                SettingsScreen(viewModel = viewModel)
             }
         }
     }

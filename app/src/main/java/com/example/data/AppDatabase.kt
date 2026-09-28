@@ -6,14 +6,19 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Profile::class, ChatMessage::class, AppSettings::class, SessionNote::class],
-    version = 7,
+    entities = [Profile::class, ChatMessage::class, AppSettings::class, SessionNote::class, FocusSession::class],
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
 
     companion object {
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `focus_sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject` TEXT NOT NULL, `sessionType` TEXT NOT NULL, `targetDurationMinutes` INTEGER NOT NULL, `actualDurationMinutes` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `reflectionMood` TEXT, `notesSummary` TEXT, `timestamp` INTEGER NOT NULL)")
+            }
+        }
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `session_notes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `matchId` INTEGER NOT NULL, `content` TEXT NOT NULL, `audioFilePath` TEXT, `timestamp` INTEGER NOT NULL)")
