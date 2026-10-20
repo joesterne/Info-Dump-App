@@ -241,7 +241,8 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
                     IconButton(onClick = {
                         viewModel.updateSettings(
                             isDarkMode = !settings.isDarkMode,
-                            textSizeMultiplier = settings.textSizeMultiplier
+                            textSizeMultiplier = settings.textSizeMultiplier,
+                            isHighContrast = settings.isHighContrast
                         )
                     }) {
                         Icon(

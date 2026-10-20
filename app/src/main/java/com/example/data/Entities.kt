@@ -32,7 +32,8 @@ data class ChatMessage(
 data class AppSettings(
     @PrimaryKey val id: Int = 1,
     val isDarkMode: Boolean = true,
-    val textSizeMultiplier: Float = 1.0f
+    val textSizeMultiplier: Float = 1.0f,
+    val isHighContrast: Boolean = false
 )
 
 @Entity(tableName = "session_notes")

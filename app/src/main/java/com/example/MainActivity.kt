@@ -34,7 +34,8 @@ class MainActivity : ComponentActivity() {
       AppDatabase.MIGRATION_4_5,
       AppDatabase.MIGRATION_5_6,
       AppDatabase.MIGRATION_6_7,
-      AppDatabase.MIGRATION_7_8
+      AppDatabase.MIGRATION_7_8,
+      AppDatabase.MIGRATION_8_9
     )
     .build()
     
@@ -54,7 +55,8 @@ class MainActivity : ComponentActivity() {
       
       MyApplicationTheme(
         darkTheme = settings.isDarkMode,
-        textSizeMultiplier = settings.textSizeMultiplier
+        textSizeMultiplier = settings.textSizeMultiplier,
+        isHighContrast = settings.isHighContrast
       ) {
         Surface(modifier = Modifier.fillMaxSize()) {
           val navController = rememberNavController()

@@ -7,13 +7,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Profile::class, ChatMessage::class, AppSettings::class, SessionNote::class, FocusSession::class],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
 
     companion object {
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE app_settings ADD COLUMN isHighContrast INTEGER NOT NULL DEFAULT 0")
+            }
+        }
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `focus_sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `subject` TEXT NOT NULL, `sessionType` TEXT NOT NULL, `targetDurationMinutes` INTEGER NOT NULL, `actualDurationMinutes` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `reflectionMood` TEXT, `notesSummary` TEXT, `timestamp` INTEGER NOT NULL)")

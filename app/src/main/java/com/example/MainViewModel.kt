@@ -181,10 +181,39 @@ class MainViewModel(
         .map { it ?: AppSettings() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppSettings())
 
-    fun updateSettings(isDarkMode: Boolean, textSizeMultiplier: Float) {
+    fun updateSettings(
+        isDarkMode: Boolean = settings.value.isDarkMode,
+        textSizeMultiplier: Float = settings.value.textSizeMultiplier,
+        isHighContrast: Boolean = settings.value.isHighContrast
+    ) {
         viewModelScope.launch {
-            repository.updateSettings(AppSettings(id = 1, isDarkMode = isDarkMode, textSizeMultiplier = textSizeMultiplier))
+            repository.updateSettings(
+                AppSettings(
+                    id = 1,
+                    isDarkMode = isDarkMode,
+                    textSizeMultiplier = textSizeMultiplier,
+                    isHighContrast = isHighContrast
+                )
+            )
         }
+    }
+
+    fun toggleHighContrast() {
+        val current = settings.value
+        updateSettings(
+            isDarkMode = current.isDarkMode,
+            textSizeMultiplier = current.textSizeMultiplier,
+            isHighContrast = !current.isHighContrast
+        )
+    }
+
+    fun setDynamicFontScale(multiplier: Float) {
+        val current = settings.value
+        updateSettings(
+            isDarkMode = current.isDarkMode,
+            textSizeMultiplier = multiplier.coerceIn(0.75f, 2.2f),
+            isHighContrast = current.isHighContrast
+        )
     }
 
     fun saveMyProfile(name: String, isHyperfixating: Boolean, subject: String, tags: String, energyLevel: String = "Medium") {
