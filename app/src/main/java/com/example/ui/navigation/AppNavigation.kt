@@ -16,6 +16,9 @@ import com.example.ui.screens.NotesScreen
 import com.example.ui.screens.FocusTimerScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -31,6 +34,9 @@ import com.example.ui.screens.OnboardingScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, initialNoteText: String? = null) {
+    // Quick note handed over from the Focus Timer's "Jot Thought -> Send to
+    // Notes" - the nav lambda used to ignore the text entirely.
+    var pendingQuickNote by remember { mutableStateOf<String?>(null) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: "splash"
     val showBottomNav = currentRoute in listOf("feed", "archive", "notes", "focus", "settings")
@@ -139,12 +145,13 @@ fun AppNavigation(navController: NavHostController, viewModel: MainViewModel, in
                 })
             }
             composable("notes") {
-                NotesScreen(viewModel = viewModel, initialNoteText = initialNoteText)
+                NotesScreen(viewModel = viewModel, initialNoteText = pendingQuickNote ?: initialNoteText)
             }
             composable("focus") {
                 FocusTimerScreen(
                     viewModel = viewModel,
-                    onNavigateToNotes = { _ ->
+                    onNavigateToNotes = { quickNote ->
+                        pendingQuickNote = quickNote
                         navController.navigate("notes") {
                             popUpTo(navController.graph.startDestinationId)
                             launchSingleTop = true

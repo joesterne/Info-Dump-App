@@ -143,7 +143,14 @@ fun FocusTimerScreen(
             if (gentleSoundEnabled) {
                 try {
                     val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 70)
-                    toneGen.startTone(ToneGenerator.TONE_PROP_BEEP2, 350)
+                    try {
+                        toneGen.startTone(ToneGenerator.TONE_PROP_BEEP2, 350)
+                        kotlinx.coroutines.delay(400)
+                    } finally {
+                        // ToneGenerator holds a native resource - it was
+                        // created per completion and never released.
+                        toneGen.release()
+                    }
                 } catch (_: Exception) { }
             }
             if (gentleVibrationEnabled) {
@@ -802,6 +809,18 @@ private fun ProgressTabContent(
         allSessions.filter { it.completed }
     }
 
+    // Same start-of-day boundary the minutes figure uses (the sessions count
+    // below previously used a rolling 24h window, so the same card disagreed
+    // with itself around midnight).
+    val startOfToday = remember {
+        java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }.timeInMillis
+    }
+
     val topicsBreakdown = remember(completedSessions) {
         completedSessions.groupBy { it.subject }
             .mapValues { entry -> entry.value.sumOf { it.actualDurationMinutes } }
@@ -846,7 +865,7 @@ private fun ProgressTabContent(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "${completedSessions.filter { it.timestamp >= System.currentTimeMillis() - 86400000 }.size} sessions",
+                            text = "${completedSessions.filter { it.timestamp >= startOfToday }.size} sessions",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                         )

@@ -18,8 +18,10 @@ class EncryptedPrefsManager(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    fun saveAuthToken(token: String) {
-        sharedPreferences.edit().putString("AUTH_TOKEN", token).apply()
+    // This stores the signed-in user's UID - it was named "auth token"
+    // although no token was ever saved here.
+    fun saveUserUid(uid: String) {
+        sharedPreferences.edit().putString("USER_UID", uid).apply()
     }
 
     fun setOnboardingCompleted(completed: Boolean) {
@@ -30,11 +32,11 @@ class EncryptedPrefsManager(context: Context) {
         return sharedPreferences.getBoolean("ONBOARDING_COMPLETED", false)
     }
 
-    fun getAuthToken(): String? {
-        return sharedPreferences.getString("AUTH_TOKEN", null)
+    fun getUserUid(): String? {
+        return sharedPreferences.getString("USER_UID", null)
     }
 
-    fun clearAuthToken() {
-        sharedPreferences.edit().remove("AUTH_TOKEN").apply()
+    fun clearUserUid() {
+        sharedPreferences.edit().remove("USER_UID").apply()
     }
 }

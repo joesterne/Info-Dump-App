@@ -594,7 +594,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
                     val savedTopics by viewModel.savedTopics.collectAsStateWithLifecycle()
                     var newTopic by remember { mutableStateOf("") }
                     
-                    Text("Keep a list of interests to return to for future infodump pairings. These are securely synced to your cloud account.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Keep a list of interests to return to for future infodump pairings. These sync to your own account when you are signed in.", style = MaterialTheme.typography.bodyMedium)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

@@ -92,13 +92,13 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { showReportDialog = false },
             title = { Text("Report User") },
-            text = { Text("Are you sure you want to report this user for inappropriate behavior? This will flag the conversation for review.") },
+            text = { Text("This chat is a local simulation, so reports are not sent anywhere. You can end the conversation instead.") },
             confirmButton = {
                 TextButton(onClick = {
                     showReportDialog = false
                     onBack()
                 }) {
-                    Text("Report", color = MaterialTheme.colorScheme.error)
+                    Text("End Chat", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -347,7 +347,7 @@ fun ChatScreen(viewModel: MainViewModel, matchId: Int, onBack: () -> Unit) {
             item {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text(
-                        "Secure Chat Established",
+                        "Local chat simulation — messages never leave this device",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

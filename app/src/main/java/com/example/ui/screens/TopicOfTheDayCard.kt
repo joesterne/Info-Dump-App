@@ -17,7 +17,10 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun TopicOfTheDayCard(onTopicSelected: (String) -> Unit) {
     val topicOfTheDay = remember {
-        listOf("Retro Gaming", "Mycology", "Urban Planning", "Astrophysics", "Baking Science", "Linguistics").random()
+        // Deterministic per calendar day - .random() re-rolled the "topic of
+        // the day" on every mount/recomposition.
+        val topics = listOf("Retro Gaming", "Mycology", "Urban Planning", "Astrophysics", "Baking Science", "Linguistics")
+        topics[java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR) % topics.size]
     }
     
     Card(

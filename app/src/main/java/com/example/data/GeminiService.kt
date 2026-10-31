@@ -64,10 +64,11 @@ object GeminiService {
             .build()
             
         try {
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-            
-            if (response.isSuccessful) {
+            // use {} closes the response - the connection leaked on every call.
+            client.newCall(request).execute().use { response ->
+                val responseBody = response.body?.string() ?: ""
+
+                if (response.isSuccessful) {
                 val jsonResponse = JSONObject(responseBody)
                 val candidates = jsonResponse.optJSONArray("candidates")
                 if (candidates != null && candidates.length() > 0) {
@@ -78,9 +79,10 @@ object GeminiService {
                         return@withContext parts.getJSONObject(0).optString("text", "No transcription generated.")
                     }
                 }
-                "Error: Could not parse response."
-            } else {
-                "Error: API call failed with code ${response.code}. $responseBody"
+                    "Error: Could not parse response."
+                } else {
+                    "Error: API call failed with code ${response.code}. $responseBody"
+                }
             }
         } catch (e: Exception) {
             "Error: ${e.message}"

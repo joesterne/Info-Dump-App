@@ -21,8 +21,15 @@ class FirestoreSyncManager {
 
     private val mockSavedTopics = mutableListOf<String>()
 
-    suspend fun saveMyProfile(profile: Profile) {
+    // All per-user documents are keyed by the signed-in user's UID. They used
+    // to be written to one hardcoded "my_profile" document, so every user's
+    // profile/topics overwrote everyone else's.
+    suspend fun saveMyProfile(uid: String?, profile: Profile) {
         val db = firestore ?: return
+        if (uid.isNullOrBlank()) {
+            Log.w("FirestoreSync", "Not signed in - profile kept local only")
+            return
+        }
         try {
             val data = mapOf(
                 "name" to profile.name,
@@ -33,17 +40,18 @@ class FirestoreSyncManager {
                 "energyLevel" to profile.energyLevel,
                 "updatedAt" to System.currentTimeMillis()
             )
-            db.collection("users").document("my_profile").set(data).await()
+            db.collection("users").document(uid).set(data).await()
             Log.d("FirestoreSync", "Successfully saved my profile to Firestore")
         } catch (e: Exception) {
             Log.w("FirestoreSync", "Error saving profile: ${e.message}")
         }
     }
 
-    suspend fun saveMatchResult(myProfile: Profile, matchWithScore: MatchWithScore) {
+    suspend fun saveMatchResult(uid: String?, myProfile: Profile, matchWithScore: MatchWithScore) {
         val db = firestore ?: return
         try {
             val data = mapOf(
+                "uid" to uid,
                 "myName" to myProfile.name,
                 "matchName" to matchWithScore.profile.name,
                 "matchSubject" to matchWithScore.profile.subject,
@@ -68,23 +76,26 @@ class FirestoreSyncManager {
                 "rating" to profile.rating,
                 "energyLevel" to profile.energyLevel
             )
-            db.collection("users").document(profile.name).set(data).await()
+            // Auto-generated document ID: the display name is a field, never
+            // the key (same-name profiles overwrote each other, and a "/"
+            // in a name corrupted the document path).
+            db.collection("users").document().set(data).await()
             Log.d("FirestoreSync", "Successfully saved mock user to Firestore")
         } catch(e: Exception) {
             Log.w("FirestoreSync", "Error saving mock user: ${e.message}")
         }
     }
 
-    suspend fun saveTopics(topics: List<String>) {
+    suspend fun saveTopics(uid: String?, topics: List<String>) {
         val db = firestore
-        if (db == null) {
+        if (db == null || uid.isNullOrBlank()) {
             mockSavedTopics.clear()
             mockSavedTopics.addAll(topics)
             Log.d("FirestoreSync", "Successfully saved topics to mock local storage")
             return
         }
         try {
-            db.collection("users").document("my_profile")
+            db.collection("users").document(uid!!)
               .collection("saved_topics").document("list")
               .set(mapOf("topics" to topics)).await()
             Log.d("FirestoreSync", "Successfully saved topics to Firestore")
@@ -93,13 +104,13 @@ class FirestoreSyncManager {
         }
     }
 
-    suspend fun getSavedTopics(): List<String> {
+    suspend fun getSavedTopics(uid: String?): List<String> {
         val db = firestore
-        if (db == null) {
+        if (db == null || uid.isNullOrBlank()) {
             return mockSavedTopics.toList()
         }
         return try {
-            val snapshot = db.collection("users").document("my_profile")
+            val snapshot = db.collection("users").document(uid!!)
                              .collection("saved_topics").document("list").get().await()
             val topics = snapshot.get("topics") as? List<String>
             topics ?: emptyList()

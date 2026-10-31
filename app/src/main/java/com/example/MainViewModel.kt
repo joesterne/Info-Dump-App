@@ -65,8 +65,8 @@ class MainViewModel(
 
     init {
         viewModelScope.launch {
-            _savedTopics.value = firestoreSyncManager.getSavedTopics()
             _currentUserUid.value = authManager.getCurrentUserUid()
+            _savedTopics.value = firestoreSyncManager.getSavedTopics(_currentUserUid.value)
         }
     }
 
@@ -75,14 +75,15 @@ class MainViewModel(
             val uid = authManager.signInWithGoogle()
             if (uid != null) {
                 _currentUserUid.value = uid
-                encryptedPrefsManager.saveAuthToken(uid)
+                encryptedPrefsManager.saveUserUid(uid)
+                _savedTopics.value = firestoreSyncManager.getSavedTopics(uid)
             }
         }
     }
 
     fun signOut() {
         authManager.signOut()
-        encryptedPrefsManager.clearAuthToken()
+        encryptedPrefsManager.clearUserUid()
         _currentUserUid.value = null
     }
 
@@ -92,7 +93,7 @@ class MainViewModel(
             current.add(topic)
             _savedTopics.value = current
             viewModelScope.launch {
-                firestoreSyncManager.saveTopics(current)
+                firestoreSyncManager.saveTopics(_currentUserUid.value, current)
             }
         }
     }
@@ -102,7 +103,7 @@ class MainViewModel(
         if (current.remove(topic)) {
             _savedTopics.value = current
             viewModelScope.launch {
-                firestoreSyncManager.saveTopics(current)
+                firestoreSyncManager.saveTopics(_currentUserUid.value, current)
             }
         }
     }
@@ -163,7 +164,10 @@ class MainViewModel(
         val matchSubject = match.subject.trim().lowercase()
         if (mySubject.isNotEmpty() && mySubject == matchSubject) {
             score += 35
-        } else if (mySubject.isNotEmpty() && matchSubject.contains(mySubject) || mySubject.contains(matchSubject)) {
+        } else if (mySubject.isNotEmpty() && matchSubject.isNotEmpty() &&
+            (matchSubject.contains(mySubject) || mySubject.contains(matchSubject))) {
+            // Parenthesized + both non-empty: contains("") is always true, so
+            // an empty subject used to earn +20 against everyone.
             score += 20 // Partial match
         }
 
@@ -230,7 +234,7 @@ class MainViewModel(
                 energyLevel = energyLevel
             )
             repository.insertProfile(profile)
-            firestoreSyncManager.saveMyProfile(profile)
+            firestoreSyncManager.saveMyProfile(_currentUserUid.value, profile)
         }
     }
 
@@ -279,7 +283,7 @@ class MainViewModel(
             val match = repository.getProfileById(matchId) ?: return@launch
             val score = calculateCompatibilityScore(me, match)
             val matchWithScore = MatchWithScore(match, score)
-            firestoreSyncManager.saveMatchResult(me, matchWithScore)
+            firestoreSyncManager.saveMatchResult(_currentUserUid.value, me, matchWithScore)
         }
     }
 

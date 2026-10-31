@@ -62,6 +62,13 @@ fun NotesScreen(viewModel: MainViewModel, initialNoteText: String? = null) {
     val notes by viewModel.getNotes(0).collectAsStateWithLifecycle(initialValue = emptyList())
     
     var noteText by remember { mutableStateOf(initialNoteText ?: "") }
+    // A quick note handed over from the Focus Timer lands here - apply it
+    // whenever a new one arrives, not just on first composition.
+    LaunchedEffect(initialNoteText) {
+        if (!initialNoteText.isNullOrBlank()) {
+            noteText = initialNoteText
+        }
+    }
     var searchQuery by remember { mutableStateOf("") }
     
     // Recording state
@@ -260,7 +267,10 @@ fun NotesScreen(viewModel: MainViewModel, initialNoteText: String? = null) {
                             if (!hasRecordPermission) {
                                 recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             } else {
-                                val audioFile = File(context.cacheDir, "audio_note_${System.currentTimeMillis()}.mp4")
+                                // filesDir, not cacheDir: the path is persisted in
+                                // Room, and the OS can purge cacheDir at any time,
+                                // which silently destroyed saved voice memos.
+                                val audioFile = File(context.filesDir, "audio_note_${System.currentTimeMillis()}.mp4")
                                 currentAudioPath = audioFile.absolutePath
                                 
                                 val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
